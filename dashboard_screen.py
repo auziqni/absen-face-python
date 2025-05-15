@@ -135,24 +135,24 @@ class DashboardScreen(QWidget):
         """
         
         # Tombol 1: Kelas
-        self.btn_kelas = QPushButton("Kelas")
+        self.btn_kelas = QPushButton("Sync")
         self.btn_kelas.setFixedSize(120, 40)
         self.btn_kelas.setFont(QFont("Arial", 10))
         self.btn_kelas.setStyleSheet(button_style)
         self.btn_kelas.setCursor(Qt.PointingHandCursor)
-        self.btn_kelas.clicked.connect(self._on_kelas_clicked)
+        self.btn_kelas.clicked.connect(self._on_sync_clicked)
         navbar_layout.addWidget(self.btn_kelas)
         
         # Spasi antara tombol
         navbar_layout.addSpacing(10)
         
         # Tombol 2: Dosen
-        self.btn_dosen = QPushButton("Dosen")
+        self.btn_dosen = QPushButton("Train")
         self.btn_dosen.setFixedSize(120, 40)
         self.btn_dosen.setFont(QFont("Arial", 10))
         self.btn_dosen.setStyleSheet(button_style)
         self.btn_dosen.setCursor(Qt.PointingHandCursor)
-        self.btn_dosen.clicked.connect(self._on_dosen_clicked)
+        self.btn_dosen.clicked.connect(self._on_train_clicked)
         navbar_layout.addWidget(self.btn_dosen)
         
         # Spasi antara tombol
@@ -337,19 +337,76 @@ class DashboardScreen(QWidget):
         else:
             QMessageBox.warning(self, "Peringatan", "Data kelas tidak lengkap!")
     
-    # Handler for each button
-    def _on_kelas_clicked(self):
+    def _on_sync_clicked(self):
         """
-        Menangani event saat tombol Kelas diklik.
+        Menangani event saat tombol Sync diklik.
         """
-        print("Tombol 'Kelas' diklik")
-        # Tambahkan logika untuk tombol Kelas di sini
+        print("Tombol 'Sync' diklik")
+        
+        # Tampilkan dialog konfirmasi
+        confirmation = QMessageBox.question(
+            self,
+            "Konfirmasi Sinkronisasi",
+            "Apakah Anda yakin ingin melakukan sinkronisasi data?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+        
+        if confirmation == QMessageBox.Yes:
+            # Inisialisasi database manager
+            db_manager = DatabaseManager()
+            db_manager.connect()
+            
+            # Jalankan sinkronisasi
+            status, result = db_manager.sync_db_to_server()
+            
+            # Tutup koneksi database
+            db_manager.close()
+            
+            # Tampilkan hasil sinkronisasi
+            if status:
+                # Format pesan berhasil
+                success_count = result.get('synced', 0)
+                failed_count = result.get('failed', 0)
+                total_count = result.get('total', 0)
+                
+                message = f"Sinkronisasi selesai.\n\n"
+                message += f"Berhasil: {success_count}\n"
+                message += f"Gagal: {failed_count}\n"
+                message += f"Total: {total_count}"
+                
+                # Jika ada kegagalan, tambahkan detail
+                if failed_count > 0 and result.get('failed_details'):
+                    message += "\n\nDetail kegagalan:"
+                    for i, detail in enumerate(result['failed_details']):
+                        message += f"\n{i+1}. ID Absensi: {detail.get('id', 'N/A')}"
+                        if 'status_code' in detail:
+                            message += f"\n   Status: {detail.get('status_code', 'N/A')}"
+                            message += f"\n   Pesan: {detail.get('message', 'N/A')}"
+                        else:
+                            message += f"\n   Error: {detail.get('error', 'N/A')}"
+                
+                # Tampilkan pesan berhasil
+                QMessageBox.information(
+                    self,
+                    "Sinkronisasi Berhasil",
+                    message,
+                    QMessageBox.Ok
+                )
+            else:
+                # Tampilkan pesan error
+                QMessageBox.critical(
+                    self,
+                    "Sinkronisasi Gagal",
+                    f"Error: {result.get('message', 'Terjadi kesalahan yang tidak diketahui.')}",
+                    QMessageBox.Ok
+                )
     
-    def _on_dosen_clicked(self):
+    def _on_train_clicked(self):
         """
         Menangani event saat tombol Dosen diklik.
         """
-        print("Tombol 'Dosen' diklik")
+        print("Tombol 'train' diklik")
         # Tambahkan logika untuk tombol Dosen di sini
     
     def _on_mulai_kelas_clicked(self):
